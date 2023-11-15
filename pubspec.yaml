@@ -1,5 +1,5 @@
 name: downloadsfolder
-description: A new Flutter project.
+description: A Flutter plugin for retrieving the path to the downloads folder and performing operations related to file downloads on different platforms.
 version: 0.0.5
 homepage: https://github.com/UnluckyY1
 repository: https://github.com/UnluckyY1/flutter_downloads_folder
