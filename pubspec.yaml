@@ -1,7 +1,8 @@
 name: downloadsfolder
 description: A new Flutter project.
 version: 0.0.5
-homepage:
+homepage: https://github.com/UnluckyY1
+repository: https://github.com/UnluckyY1/flutter_downloads_folder
 
 environment:
   sdk: '>=3.1.5 <4.0.0'
