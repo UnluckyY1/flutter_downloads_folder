@@ -9,9 +9,9 @@ extension FileTool on File {
   /// Copies the file to the specified folder with the given file name, ensuring a unique name to avoid overwriting existing files.
   ///
   /// - **folderPath:** The path to the destination folder where the file will be copied.
-  /// 
+  ///
   /// - **fileName:** The name for the copied file in the destination folder.
-  /// 
+  ///
   /// - **desiredExtension:** (Optional) The desired file extension for the copied file.
   ///                         If provided, the copied file will have this extension; otherwise, the extension is derived from the original file's name.
   ///
