@@ -1,3 +1,7 @@
+## [0.1.1] 
+- update dependencies
+- update example app
+
 ## [0.0.5] - Initial Release
 - Released the initial version of the `downloadsfolder` plugin.
 - Added functionality to retrieve the path to the downloads folder based on the platform.
