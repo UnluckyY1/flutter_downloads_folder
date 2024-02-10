@@ -6,14 +6,16 @@ import 'package:diacritic/diacritic.dart';
 import 'package:path/path.dart';
 
 extension FileTool on File {
-  /// Copies the file to the specified folder with the given file name, ensuring a unique name to avoid overwriting existing files.
+  /// Copies the file to the specified folder with the given file name, ensuring a unique name
+  /// to avoid overwriting existing files.
   ///
   /// - **folderPath:** The path to the destination folder where the file will be copied.
   ///
   /// - **fileName:** The name for the copied file in the destination folder.
   ///
   /// - **desiredExtension:** (Optional) The desired file extension for the copied file.
-  ///                         If provided, the copied file will have this extension; otherwise, the extension is derived from the original file's name.
+  ///                         If provided, the copied file will have this extension;
+  ///                         otherwise, the extension is derived from the original file's name.
   ///
   /// - @return A [Future] that completes with a [File] object representing the copied file in the destination folder.
   ///
@@ -21,7 +23,8 @@ extension FileTool on File {
   ///
   /// - @remarks
   /// This method ensures a unique file name in the destination folder to avoid overwriting existing files.
-  /// If a file with the same name already exists, a suffix in the form of '_(copyNumber)' is added to the file name, and the copy operation is retried.
+  /// If a file with the same name already exists, a suffix in
+  /// the form of '_(copyNumber)' is added to the file name, and the copy operation is retried.
   Future<File> copyTo(String folderPath, String fileName,
       {String? desiredExtension}) async {
     if (folderPath.isNotNullOrEmpty) {
