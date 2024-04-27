@@ -19,13 +19,13 @@ export 'package:path/path.dart';
 ///  and retrieves the path to the external storage downloads directory
 ///  based on the specified folder type [_androidDownloadsFolderType].
 ///
-/// - On **iOS**, the method returns the path to the ApplicationDocumentsDirectory.
+/// - On **iOS**, the method returns the Directory to the ApplicationDocumentsDirectory.
 ///
-/// - On **macOS**, the method returns the path to the Downloads directory.
+/// - On **macOS**, the method returns the Directory to the Downloads directory.
 ///
-/// - On **Windows**, the method uses the Windows-specific path provider to retrieve the path to the Downloads directory.
-Future<String?> getDownloadDirectoryPath() =>
-    DownloadsfolderPlatform.instance.getDownloadFolderPath();
+/// - On **Windows**, the method uses the Windows-specific path provider to retrieve the Directory to the Downloads directory.
+Future<Directory> getDownloadDirectory() =>
+    DownloadsfolderPlatform.instance.getDownloadFolder();
 
 /// Copies the file to the download folder with the specified file name
 /// and ensures a unique name to avoid overwriting existing files.

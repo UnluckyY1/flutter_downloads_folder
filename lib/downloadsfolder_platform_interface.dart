@@ -25,7 +25,7 @@ abstract class DownloadsfolderPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getDownloadFolderPath() => throw UnimplementedError(
+  Future<Directory> getDownloadFolder() => throw UnimplementedError(
       'getDownloadFolderPath() has not been implemented.');
 
   Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,

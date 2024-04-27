@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:downloadsfolder/src/file_extension.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -21,42 +20,74 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   final _androidDownloadsFolderType = 'Download';
 
   @override
-  Future<String?> getDownloadFolderPath() async {
+Future<Directory> getDownloadFolder() async {
+  try {
     String? downloadPath = '';
-    try {
-      if (Platform.isAndroid) {
-        // Get the external storage downloads directory path on Android using the platform-specific channel.
-        downloadPath = await methodChannel.invokeMethod<String?>(
-          'getExternalStoragePublicDirectory',
-          {'type': _androidDownloadsFolderType},
-        );
-      } else if (Platform.isIOS) {
-        // Get the ApplicationDocumentsDirectory path for iOS.
-        downloadPath = (await path.getApplicationDocumentsDirectory()).path;
-      } else if (Platform.isMacOS) {
-        // Get the Downloads directory path for MacOS.
-        downloadPath = (await path.getDownloadsDirectory())?.path;
-      } else if (Platform.isWindows) {
-        // Get the Downloads directory path for Windows using the Windows-specific path provider.
-        downloadPath =
-            await pathwindows.PathProviderWindows().getDownloadsPath();
-      }
-    } on Exception catch (_) {
-      // Rethrow any exception that occurs during the path retrieval process.
-      rethrow;
+    if (Platform.isAndroid) {
+      // Get the external storage downloads directory path on Android using the platform-specific channel.
+      downloadPath = await methodChannel.invokeMethod<String>(
+        'getExternalStoragePublicDirectory',
+        {'type': _androidDownloadsFolderType},
+      );
+    } else if (Platform.isIOS) {
+      // Get the ApplicationDocumentsDirectory path for iOS.
+      downloadPath = (await path.getApplicationDocumentsDirectory()).path;
+    } else if (Platform.isMacOS) {
+      // Get the Downloads directory path for MacOS.
+      downloadPath = (await path.getDownloadsDirectory())?.path;
+    } else if (Platform.isWindows) {
+      // Get the Downloads directory path for Windows using the Windows-specific path provider.
+      downloadPath =
+          await pathwindows.PathProviderWindows().getDownloadsPath();
     }
-    return downloadPath;
+
+    if (downloadPath != null) {
+      return Directory(downloadPath);
+    } else {
+      throw PlatformException(
+        code: 'DOWNLOAD_FOLDER_PATH_ERROR',
+        message: 'Failed to retrieve download folder path.',
+      );
+    }
+  } on PlatformException catch (_) {
+    rethrow;
+  } catch (e) {
+    throw PlatformException(
+      code: 'DOWNLOAD_FOLDER_PATH_ERROR',
+      message: 'Failed to retrieve download folder path: $e',
+    );
   }
+}
+
+  
+
+   Future<int> _getCurrentSdkVersion() async {
+  try {
+    final int? sdkVersion = await methodChannel.invokeMethod('getCurrentSdkVersion');
+    print(sdkVersion);
+    if (sdkVersion != null) {
+      return sdkVersion;
+    } else {
+      throw PlatformException(
+        code: 'UNKNOWN_SDK_VERSION',
+        message: 'Failed to retrieve SDK version.',
+      );
+    }
+  } on PlatformException catch (_) {
+    rethrow ;
+  }
+}
+  
 
   @override
   Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
       {File? file, String? desiredExtension}) async {
     // Determine the Android SDK version (if it's an Android device).
     final androidSdkVersion = Platform.isAndroid
-        ? (await DeviceInfoPlugin().androidInfo).version.sdkInt
+        ? await _getCurrentSdkVersion()
         : 0;
 
-    if (Platform.isAndroid && androidSdkVersion < 29 || Platform.isIOS) {
+    if (Platform.isAndroid && androidSdkVersion < 29 || Platform.isIOS ) {
       final bool status = await Permission.storage.isGranted;
       if (!status) await Permission.storage.request();
       if (!await Permission.storage.isGranted) {
@@ -81,10 +112,10 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
       );
     }
     // Get the path to the download folder.
-    final folderPath = await getDownloadFolderPath();
+    final folder = await getDownloadFolder();
 
     // Copy the file to the download folder with the specified file name and ensures a unique name to avoid overwriting existing files.
-    await fileToCopy.copyTo(folderPath!, fileName,
+    await fileToCopy.copyTo(folder.path, fileName,
         desiredExtension: desiredExtension);
 
     return true;
@@ -100,7 +131,7 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     }
 
     // For other platforms, retrieve the download folder path and attempt to launch the file explorer or file manager.
-    final downloadPath = await getDownloadFolderPath();
-    return launchUrl(Uri.parse(downloadPath ?? ''));
+    final downloadPath = await getDownloadFolder();
+    return launchUrl(Uri.parse(downloadPath.path ));
   }
 }

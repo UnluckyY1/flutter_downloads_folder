@@ -64,6 +64,11 @@ class DownloadsfolderPlugin : FlutterPlugin, MethodCallHandler {
                 openDownloadFolder(result)
             }
 
+            "getCurrentSdkVersion" -> {
+                val sdkVersion = getCurrentSdkVersion()
+                result.success(sdkVersion)
+            }
+
             else -> result.notImplemented()
         }
     }
@@ -135,6 +140,10 @@ class DownloadsfolderPlugin : FlutterPlugin, MethodCallHandler {
             // If an exception occurs, communicate the error back to Flutter.
             result.error("$e", "Unable to open the file manager", "")
         }
+    }
+
+    private fun getCurrentSdkVersion(): Int {
+        return Build.VERSION.SDK_INT
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
