@@ -81,23 +81,25 @@ class _MyAppState extends State<MyApp> {
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> _getDownloadPath() async {
-    String downloadsfolderPath;
+    Directory downloadsfolderPath;
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
     try {
-      downloadsfolderPath = await getDownloadDirectoryPath() ?? 'Unknown';
+      downloadsfolderPath = await getDownloadDirectory();
+      // If the widget was removed from the tree while the asynchronous platform
+      // message was in flight, we want to discard the reply rather than calling
+      // setState to update our non-existent appearance.
+      if (!mounted) return;
+
+      setState(() {
+        _downloadsfolderPath = downloadsfolderPath.path;
+      });
     } on PlatformException {
-      downloadsfolderPath = 'Failed to get folder path.';
+      if (!mounted) return;
+      setState(() {
+        _downloadsfolderPath = 'Failed to get folder path.';
+      });
     }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _downloadsfolderPath = downloadsfolderPath;
-    });
   }
 
   Future<void> _pickAFile() async {
