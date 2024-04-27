@@ -64,7 +64,6 @@ Future<Directory> getDownloadFolder() async {
    Future<int> _getCurrentSdkVersion() async {
   try {
     final int? sdkVersion = await methodChannel.invokeMethod('getCurrentSdkVersion');
-    print(sdkVersion);
     if (sdkVersion != null) {
       return sdkVersion;
     } else {
