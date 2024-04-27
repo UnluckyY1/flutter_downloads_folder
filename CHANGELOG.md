@@ -1,3 +1,11 @@
+## [1.0.0]
+- remove the usage of device_info_plus plugin
+- **BREAKING** Bump compileSdkVersion to 34 in Gradle buildscripts
+- **BREAKING** Change getDownloadFolderPath to getDownloadFolder and have it return a Directory instead of a String?
+- FIX openDownloadFolder not working with MacOs
+- Update dependencies
+
+
 ## [0.1.1] 
 - update dependencies
 - update example app
