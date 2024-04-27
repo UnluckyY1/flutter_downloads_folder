@@ -43,6 +43,20 @@ dependencies:
 <key>UISupportsDocumentBrowser</key>  
 <true/>
 ```
+
+##### macOS
+
+Go to your project folder, macOS/Runner/DebugProfile.entitlements
+
+> For release you need to open 'YOUR_PROJECT_NAME'Profile.entitlements
+
+and add the following key:
+
+```xml
+<key>com.apple.security.files.downloads.read-write</key>
+<true/>
+```
+
 ## Usage
 
 ##### Get Download Directory Path
