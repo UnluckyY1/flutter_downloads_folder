@@ -76,7 +76,7 @@ Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
 //
 //
 /// - On other platforms (e.g., **macOS**, **Windows**), the method retrieves the path to the download folder
-///   using the [getDownloadFolderPath] method,
+///   using the [getDownloadFolder] method,
 /// and attempts to launch the file explorer
 /// or file manager to open the specified folder using the [launchUrl] function.
 ///

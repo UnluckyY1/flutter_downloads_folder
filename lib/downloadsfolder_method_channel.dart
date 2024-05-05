@@ -98,14 +98,10 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     if (Platform.isAndroid && androidSdkVersion >= 29) {
       // Use the platform-specific channel to invoke a method and save a file using MediaStore.
       // 'saveFileUsingMediaStore' can only be used with Android API 29 and higher.
-      return methodChannel.invokeMethod<bool>(
-        'saveFileUsingMediaStore',
-        {
-          'filePath': fileToCopy.path,
-          'fileName': basenameWithoutExtension(fileName),
-          'extension': desiredExtension ?? extension(file?.path ?? filePath)
-        },
-      );
+      return _saveFileUsingMediaStore(
+          fileToCopy,
+          basenameWithoutExtension(fileName),
+          desiredExtension ?? extension(fileToCopy.path));
     }
     // Get the path to the download folder.
     final folder = await getDownloadFolder();
@@ -131,7 +127,18 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     final downloadPath = Platform.isMacOS
         ? 'file://${downloadDirectory.path}'
         : downloadDirectory.path;
-        
+
     return launchUrl(Uri.parse(downloadPath));
   }
+
+  Future<bool?> _saveFileUsingMediaStore(
+          File fileToCopy, String fileName, String desiredExtension) =>
+      methodChannel.invokeMethod<bool>(
+        'saveFileUsingMediaStore',
+        {
+          'filePath': fileToCopy.path,
+          'fileName': fileName,
+          'extension': desiredExtension
+        },
+      );
 }
