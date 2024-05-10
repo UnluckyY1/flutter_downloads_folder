@@ -10,7 +10,9 @@ import 'downloadsfolder_platform_interface.dart';
 
 import 'package:path_provider/path_provider.dart' as path;
 import 'package:path_provider_windows/path_provider_windows.dart'
-    as pathwindows;
+    as path_provider_windows;
+import 'package:path_provider_linux/path_provider_linux.dart'
+    as path_provider_linux;
 
 /// An implementation of [DownloadsfolderPlatform] that uses method channels.
 class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
@@ -23,22 +25,37 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   Future<Directory> getDownloadFolder() async {
     try {
       String? downloadPath = '';
-      if (Platform.isAndroid) {
-        // Get the external storage downloads directory path on Android using the platform-specific channel.
-        downloadPath = await methodChannel.invokeMethod<String>(
-          'getExternalStoragePublicDirectory',
-          {'type': _androidDownloadsFolderType},
-        );
-      } else if (Platform.isIOS) {
-        // Get the ApplicationDocumentsDirectory path for iOS.
-        downloadPath = (await path.getApplicationDocumentsDirectory()).path;
-      } else if (Platform.isMacOS) {
-        // Get the Downloads directory path for MacOS.
-        downloadPath = (await path.getDownloadsDirectory())?.path;
-      } else if (Platform.isWindows) {
-        // Get the Downloads directory path for Windows using the Windows-specific path provider.
-        downloadPath =
-            await pathwindows.PathProviderWindows().getDownloadsPath();
+      switch (Platform.operatingSystem) {
+        case 'android':
+          // Get the external storage downloads directory path on Android using the platform-specific channel.
+          downloadPath = await methodChannel.invokeMethod<String>(
+            'getExternalStoragePublicDirectory',
+            {'type': _androidDownloadsFolderType},
+          );
+          break;
+        case 'ios':
+          // Get the ApplicationDocumentsDirectory path for iOS.
+          downloadPath = (await path.getApplicationDocumentsDirectory()).path;
+          break;
+        case 'macos':
+          // Get the Downloads directory path for MacOS.
+          downloadPath = (await path.getDownloadsDirectory())?.path;
+          break;
+        case 'windows':
+          // Get the Downloads directory path for Windows using the Windows-specific path provider.
+          downloadPath = await path_provider_windows.PathProviderWindows()
+              .getDownloadsPath();
+          break;
+        case 'linux':
+          downloadPath =
+              await path_provider_linux.PathProviderLinux().getDownloadsPath();
+          break;
+
+        default:
+          throw PlatformException(
+            code: 'DOWNLOAD_FOLDER_PATH_ERROR',
+            message: 'Failed to retrieve download folder path.',
+          );
       }
 
       if (downloadPath != null) {
