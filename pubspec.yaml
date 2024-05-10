@@ -1,6 +1,6 @@
 name: downloadsfolder
 description: A Flutter plugin for retrieving the path to the downloads folder and performing operations related to file downloads on different platforms.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/UnluckyY1
 repository: https://github.com/UnluckyY1/flutter_downloads_folder
 
@@ -14,6 +14,7 @@ dependencies:
   plugin_platform_interface: ^2.1.8
   path_provider: ^2.1.3
   path_provider_windows: ^2.2.1
+  path_provider_linux : ^2.2.1
   path: ^1.9.0
   diacritic: ^0.1.5
   dartx: ^1.2.0
@@ -23,7 +24,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.2
+  flutter_lints: ^4.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -47,8 +48,8 @@ flutter:
         pluginClass: DownloadsfolderPlugin
       ios:
         pluginClass: DownloadsfolderPlugin
-      linux:
-        pluginClass: DownloadsfolderPlugin
+      #linux:
+      #  pluginClass: DownloadsfolderPlugin
       macos:
         pluginClass: DownloadsfolderPlugin
       windows:
