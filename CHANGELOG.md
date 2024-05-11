@@ -1,3 +1,9 @@
+## [1.0.1]
+- Updates documentation on README.md.
+- Fix linux compilation ([#3](https://github.com/UnluckyY1/flutter_downloads_folder/issues/3))
+- Fix openDownloadFolder not working on Linux.
+
+
 ## [1.0.0]
 - remove the usage of device_info_plus plugin
 - **BREAKING** Bump compileSdkVersion to 34 in Gradle buildscripts
