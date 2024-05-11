@@ -141,7 +141,7 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
 
     // For other platforms, retrieve the download folder path and attempt to launch the file explorer or file manager.
     final downloadDirectory = await getDownloadFolder();
-    final downloadPath = Platform.isMacOS
+    final downloadPath = Platform.isMacOS || Platform.isLinux
         ? 'file://${downloadDirectory.path}'
         : downloadDirectory.path;
 
