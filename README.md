@@ -65,13 +65,15 @@ and add the following key:
 import 'package:downloadsfolder/downloadsfolder.dart';
 
 void main() async {
-  String? downloadDirectoryPath = await getDownloadDirectoryPath();
-  if (downloadDirectoryPath != null) {
-    print('Downloads folder path: $downloadDirectoryPath');
-  } else {
-    print('Failed to retrieve downloads folder path.');
+  try {
+    Directory downloadDirectory = await getDownloadDirectory();
+
+    print('Downloads folder path: ${downloadDirectory.path}');
+  } catch (e) {
+    print('Failed to retrieve downloads folder path $e');
   }
 }
+
  ```
  
 ##### Copy File into Download Folder
