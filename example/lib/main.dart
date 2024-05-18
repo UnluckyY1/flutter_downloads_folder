@@ -123,7 +123,8 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _saveFile() async {
     bool? success = await copyFileIntoDownloadFolder(
-        _pickedFile!.path, basenameWithoutExtension(_pickedFile!.path));
+        _pickedFile!.path, basenameWithoutExtension(_pickedFile!.path),
+        desiredExtension: extension(_pickedFile!.path));
 
     if (!mounted) return;
 
