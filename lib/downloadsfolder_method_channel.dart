@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:downloadsfolder/src/constants.dart';
 import 'package:downloadsfolder/src/file_extension.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'downloadsfolder_platform_interface.dart';
 
 import 'package:path_provider/path_provider.dart' as path;
@@ -145,7 +145,7 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
         ? 'file://${downloadDirectory.path}'
         : downloadDirectory.path;
 
-    return launchUrl(Uri.parse(downloadPath));
+    return _openDesktopFolder(downloadPath);
   }
 
   Future<bool?> _saveFileUsingMediaStore(
@@ -158,4 +158,27 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
           'extension': desiredExtension
         },
       );
+
+  Future<bool> _openDesktopFolder(String folderPath) async {
+    try {
+      if (Platform.isWindows) {
+        final result =
+            await Process.run(windowsExplorerCommand, ['/select,', folderPath]);
+        return result.exitCode == 0;
+      } else if (Platform.isMacOS) {
+        final result = await Process.run(macOSOpenCommand, [folderPath]);
+        return result.exitCode == 0;
+      } else if (Platform.isLinux) {
+        final result = await Process.run(linuxOpenCommand, [folderPath]);
+        return result.exitCode == 0;
+      } else {
+        throw PlatformException(
+          code: 'OPEN_FOLDER_ERROR',
+          message: 'Platform is not supported',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
