@@ -125,7 +125,7 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
 
     // Copy the file to the download folder with the specified file name and ensures a unique name to avoid overwriting existing files.
     await fileToCopy.copyTo(folder.path, fileName,
-        desiredExtension: desiredExtension);
+        desiredExtension: desiredExtension ?? extension(fileToCopy.path));
 
     return true;
   }
