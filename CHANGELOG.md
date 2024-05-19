@@ -1,3 +1,8 @@
+## [1.1.0-pre-release]
+- remove the usage of url_launcher plugin
+- Fix (Desktop) Copy the default file extension if desiredExtension is not provided.
+
+
 ## [1.0.1]
 - Updates documentation on README.md.
 - Fix linux compilation ([#3](https://github.com/UnluckyY1/flutter_downloads_folder/issues/3))
