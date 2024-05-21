@@ -1,3 +1,17 @@
+## [1.1.0]
+- Implemented more concise and maintainable code organization.
+- Reduced duplication by introducing helper methods for platform-specific operations.
+- Improved error handling with specific error messages.
+- Enhanced platform detection for better compatibility.
+- Separated concerns for copying files and opening the download folder.
+- Utilized asynchronous operations more efficiently for cleaner code.
+- Improved consistency in naming conventions and the use of constants.
+- Fixed platform-specific issues related to directory retrieval and opening the download folder.
+- Fixed error handling to provide more informative error messages.
+- Refactored code to adhere to Dart and Flutter best practices.
+- Updated dependencies to the latest versions.
+- Removed dependencies on path_provider_windows and path_provider_linux for improved simplicity and reduced overhead.
+
 ## [1.1.0-pre-release]
 - remove the usage of url_launcher plugin
 - Fix (Desktop) Copy the default file extension if desiredExtension is not provided.
