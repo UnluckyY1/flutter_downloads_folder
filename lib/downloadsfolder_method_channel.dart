@@ -1,18 +1,13 @@
 import 'dart:io';
 
+import 'package:downloadsfolder/downloadsfolder.dart';
 import 'package:downloadsfolder/src/constants.dart';
-import 'package:downloadsfolder/src/file_extension.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:path/path.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'downloadsfolder_platform_interface.dart';
 
-import 'package:path_provider/path_provider.dart' as path;
-import 'package:path_provider_windows/path_provider_windows.dart'
-    as path_provider_windows;
-import 'package:path_provider_linux/path_provider_linux.dart'
-    as path_provider_linux;
+import 'package:path_provider/path_provider.dart';
 
 /// An implementation of [DownloadsfolderPlatform] that uses method channels.
 class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
@@ -23,60 +18,31 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
 
   @override
   Future<Directory> getDownloadFolder() async {
-    try {
-      String? downloadPath = '';
-      switch (Platform.operatingSystem) {
-        case 'android':
-          // Get the external storage downloads directory path on Android using the platform-specific channel.
-          downloadPath = await methodChannel.invokeMethod<String>(
-            'getExternalStoragePublicDirectory',
-            {'type': _androidDownloadsFolderType},
-          );
-          break;
-        case 'ios':
-          // Get the ApplicationDocumentsDirectory path for iOS.
-          downloadPath = (await path.getApplicationDocumentsDirectory()).path;
-          break;
-        case 'macos':
-          // Get the Downloads directory path for MacOS.
-          downloadPath = (await path.getDownloadsDirectory())?.path;
-          break;
-        case 'windows':
-          // Get the Downloads directory path for Windows using the Windows-specific path provider.
-          downloadPath = await path_provider_windows.PathProviderWindows()
-              .getDownloadsPath();
-          break;
-        case 'linux':
-          downloadPath =
-              await path_provider_linux.PathProviderLinux().getDownloadsPath();
-          break;
-
-        default:
-          throw PlatformException(
-            code: 'DOWNLOAD_FOLDER_PATH_ERROR',
-            message: 'Failed to retrieve download folder path.',
-          );
-      }
-
-      if (downloadPath != null) {
-        return Directory(downloadPath);
-      } else {
-        throw PlatformException(
+    final downloadDirectory = await switch (Platform.operatingSystem) {
+      androidPlatform =>
+        getAndroidDirectoryFromFolderType(_androidDownloadsFolderType),
+      iosPlatform => getApplicationDocumentsDirectory(),
+      macOsPlatform ||
+      windowsPlatform ||
+      linuxPlatform =>
+        getDownloadsDirectory(),
+      _ => Future.error(PlatformException(
           code: 'DOWNLOAD_FOLDER_PATH_ERROR',
-          message: 'Failed to retrieve download folder path.',
-        );
-      }
-    } on PlatformException catch (_) {
-      rethrow;
-    } catch (e) {
+          message: 'Platform is not supported.',
+        )),
+    };
+
+    if (downloadDirectory != null) {
+      return downloadDirectory;
+    } else {
       throw PlatformException(
         code: 'DOWNLOAD_FOLDER_PATH_ERROR',
-        message: 'Failed to retrieve download folder path: $e',
+        message: 'Failed to retrieve download folder path.',
       );
     }
   }
 
-  Future<int> _getCurrentSdkVersion() async {
+  Future<int> _getCurrentAndroidSdkVersion() async {
     try {
       final int? sdkVersion =
           await methodChannel.invokeMethod('getCurrentSdkVersion');
@@ -93,12 +59,26 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     }
   }
 
+  Future<Directory?> getAndroidDirectoryFromFolderType(
+      String folderType) async {
+    final String? directoryPath = await methodChannel.invokeMethod<String>(
+      'getExternalStoragePublicDirectory',
+      {'type': folderType},
+    );
+
+    if (directoryPath == null) {
+      return null;
+    }
+
+    return Directory(directoryPath);
+  }
+
   @override
   Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
       {File? file, String? desiredExtension}) async {
     // Determine the Android SDK version (if it's an Android device).
     final androidSdkVersion =
-        Platform.isAndroid ? await _getCurrentSdkVersion() : 0;
+        Platform.isAndroid ? await _getCurrentAndroidSdkVersion() : 0;
 
     if (Platform.isAndroid && androidSdkVersion < 29 || Platform.isIOS) {
       final bool status = await Permission.storage.isGranted;
@@ -160,25 +140,16 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
       );
 
   Future<bool> _openDesktopFolder(String folderPath) async {
-    try {
-      if (Platform.isWindows) {
-        final result =
-            await Process.run(windowsExplorerCommand, ['/select,', folderPath]);
-        return result.exitCode == 0;
-      } else if (Platform.isMacOS) {
-        final result = await Process.run(macOSOpenCommand, [folderPath]);
-        return result.exitCode == 0;
-      } else if (Platform.isLinux) {
-        final result = await Process.run(linuxOpenCommand, [folderPath]);
-        return result.exitCode == 0;
-      } else {
-        throw PlatformException(
+    final result = await switch (Platform.operatingSystem) {
+      windowsPlatform => Process.run(windowsExplorerCommand, [folderPath]),
+      macOsPlatform => Process.run(macOSOpenCommand, [folderPath]),
+      linuxPlatform => Process.run(linuxOpenCommand, [folderPath]),
+      _ => throw PlatformException(
           code: 'OPEN_FOLDER_ERROR',
           message: 'Platform is not supported',
-        );
-      }
-    } catch (e) {
-      rethrow;
-    }
+        ),
+    };
+
+    return result.exitCode == 0;
   }
 }
