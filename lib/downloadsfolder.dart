@@ -4,8 +4,6 @@ import 'downloadsfolder_platform_interface.dart';
 export 'src/file_extension.dart';
 export 'package:path/path.dart';
 
-
-
 /// Gets the path to the external storage directory for downloads based on the platform.
 ///
 /// return A [Future] that completes with a [String] representing the path to the downloads directory.
