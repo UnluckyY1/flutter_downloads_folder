@@ -24,7 +24,7 @@ To use this plugin, add `downloadsfolder` as a dependency in your `pubspec.yaml`
 
 ```yaml
 dependencies:
-  downloadsfolder: ^0.0.5
+  downloadsfolder: ^1.1.0
 ```  
 
 ## Setup
