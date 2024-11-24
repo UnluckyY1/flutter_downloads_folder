@@ -1,3 +1,7 @@
+## [1.1.1]
+- Updated dependencies to the latest versions.
+- Restored the Linux platform tag on pub.dev.
+
 ## [1.1.0]
 - Implemented more concise and maintainable code organization.
 - Reduced duplication by introducing helper methods for platform-specific operations.
