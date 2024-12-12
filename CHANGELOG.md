@@ -1,3 +1,11 @@
+## [1.2.0]  
+- **Breaking Change:**  
+  - Removed the dependency on `permission_handler`.  
+  - This plugin no longer manages write permissions.  
+  - **Action Required:** You must implement write permission handling in your app manually.  
+- [Android] Upgraded the required Android Java version to 17. 
+- Fixed Flutter 3.27.0 warning for the Linux platform 
+
 ## [1.1.1]
 - Updated dependencies to the latest versions.
 - Restored the Linux platform tag on pub.dev.
