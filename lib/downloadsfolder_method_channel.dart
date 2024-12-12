@@ -4,7 +4,6 @@ import 'package:downloadsfolder/downloadsfolder.dart';
 import 'package:downloadsfolder/src/constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'downloadsfolder_platform_interface.dart';
 
 import 'package:path_provider/path_provider.dart';
@@ -42,7 +41,7 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     }
   }
 
-  Future<int> _getCurrentAndroidSdkVersion() async {
+  Future<int> getCurrentAndroidSdkVersion() async {
     try {
       final int? sdkVersion =
           await methodChannel.invokeMethod('getCurrentSdkVersion');
@@ -78,15 +77,7 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
       {File? file, String? desiredExtension}) async {
     // Determine the Android SDK version (if it's an Android device).
     final androidSdkVersion =
-        Platform.isAndroid ? await _getCurrentAndroidSdkVersion() : 0;
-
-    if (Platform.isAndroid && androidSdkVersion < 29 || Platform.isIOS) {
-      final bool status = await Permission.storage.isGranted;
-      if (!status) await Permission.storage.request();
-      if (!await Permission.storage.isGranted) {
-        return false;
-      }
-    }
+        Platform.isAndroid ? await getCurrentAndroidSdkVersion() : 0;
 
     final fileToCopy = file ?? File(filePath);
 
