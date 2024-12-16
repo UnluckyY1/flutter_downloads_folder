@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:downloadsfolder/downloadsfolder.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MyExample());
@@ -122,27 +123,50 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _saveFile() async {
+    bool storagePermissionGranted = true;
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      storagePermissionGranted = await Permission.storage.isGranted;
+
+      if (!storagePermissionGranted) {
+        // Request storage permission
+        final status = await Permission.storage.request();
+        storagePermissionGranted = status.isGranted;
+      }
+    }
+
+    if (!storagePermissionGranted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to copy file. Storage permission is required.'),
+        ),
+      );
+      return;
+    }
+
+    // Attempt to copy the file
     bool? success = await copyFileIntoDownloadFolder(
-        _pickedFile!.path, basenameWithoutExtension(_pickedFile!.path),
-        desiredExtension: extension(_pickedFile!.path));
+      _pickedFile!.path,
+      basenameWithoutExtension(_pickedFile!.path),
+      desiredExtension: extension(_pickedFile!.path),
+    );
 
     if (!mounted) return;
 
-    if (success == true) {
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        SnackBar(
-          content: const Text('File copied successfully.'),
-          action: SnackBarAction(
-              label: 'Show Download Folder', onPressed: _openDownloadFolder),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to copy file.'),
-        ),
-      );
-    }
+    ScaffoldMessenger.of(this.context).showSnackBar(
+      SnackBar(
+        content: Text(success == true
+            ? 'File copied successfully.'
+            : 'Failed to copy file.'),
+        action: success == true
+            ? SnackBarAction(
+                label: 'Show Download Folder',
+                onPressed: _openDownloadFolder,
+              )
+            : null,
+      ),
+    );
   }
 
   Future<void> _openDownloadFolder() => openDownloadFolder();
