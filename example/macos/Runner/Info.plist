@@ -28,9 +28,5 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>NSDownloadsFolderUsageDescription</key>
-    <string>App wants to access your downloads folder</string>
-    <key>com.apple.security.files.downloads.read-write</key>
-    <true/>
 </dict>
 </plist>

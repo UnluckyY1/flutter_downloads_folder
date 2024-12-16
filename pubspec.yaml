@@ -14,7 +14,7 @@ dependencies:
 
   plugin_platform_interface: ^2.1.8
   path_provider: ^2.1.5
-  path: '>=1.9.0 <1.9.1'
+  path: ^1.9.0
   diacritic: ^0.1.6
   dartx: ^1.2.0
 
@@ -45,8 +45,7 @@ flutter:
         pluginClass: DownloadsfolderPlugin
       ios:
         pluginClass: DownloadsfolderPlugin
-      linux:
-        dartPluginClass: DownloadsfolderPlatform # Pure Dart implementation for Linux
+      #linux:  TODO find away to show the linux tag on pub.dev
       macos:
         pluginClass: DownloadsfolderPlugin
       windows:
