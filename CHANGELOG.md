@@ -1,12 +1,11 @@
 ## [2.0.0-pre.1]  
 #### Breaking Changes
 - **`copyFileIntoDownloadFolder` Return Type**  
-  - Changed return type from `boolean` to `File` object ([#11])  
+  - Changed return type from `boolean` to `File` object ([#11](https://github.com/UnluckyY1/flutter_downloads_folder/issues/11))  
   - **Migration Required:** Update code to handle the returned `File` instead of boolean checks
 #### New Features
 - **Subdirectory Support**  
-  - Added `subDirectoryPath` parameter to `copyFileIntoDownloadFolder`  
-  - Enables organized file storage in nested folders within the main download directory
+  - Added `subDirectoryPath` parameter to `copyFileIntoDownloadFolder` ([#9](https://github.com/UnluckyY1/flutter_downloads_folder/issues/9))  
  
 ## [1.2.0]  
 - **Breaking Change:**  
