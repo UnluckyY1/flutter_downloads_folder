@@ -16,11 +16,7 @@ class MyExample extends StatelessWidget {
   const MyExample({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: MyApp(),
-    );
-  }
+  Widget build(BuildContext context) => const MaterialApp(home: MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -125,7 +121,9 @@ class _MyAppState extends State<MyApp> {
   Future<void> _saveFile() async {
     bool storagePermissionGranted = true;
 
-    if (Platform.isAndroid || Platform.isIOS) {
+    final androidSdk = await getCurrentAndroidSdkVersion();
+
+    if (Platform.isAndroid && androidSdk < 33 || Platform.isIOS) {
       storagePermissionGranted = await Permission.storage.isGranted;
 
       if (!storagePermissionGranted) {
@@ -146,20 +144,19 @@ class _MyAppState extends State<MyApp> {
     }
 
     // Attempt to copy the file
-    bool? success = await copyFileIntoDownloadFolder(
-      _pickedFile!.path,
-      basenameWithoutExtension(_pickedFile!.path),
-      desiredExtension: extension(_pickedFile!.path),
-    );
+    final newFile = await copyFileIntoDownloadFolder(
+        _pickedFile!.path, basenameWithoutExtension(_pickedFile!.path),
+        desiredExtension: extension(_pickedFile!.path),
+        subDirectoryPath: 'subDirector');
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(this.context).showSnackBar(
       SnackBar(
-        content: Text(success == true
-            ? 'File copied successfully.'
+        content: Text(newFile != null
+            ? 'File copied successfully path : "${newFile.path}"'
             : 'Failed to copy file.'),
-        action: success == true
+        action: newFile != null
             ? SnackBarAction(
                 label: 'Show Download Folder',
                 onPressed: _openDownloadFolder,

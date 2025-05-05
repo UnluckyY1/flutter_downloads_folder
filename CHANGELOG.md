@@ -1,3 +1,13 @@
+## [2.0.0-pre.1]  
+#### Breaking Changes
+- **`copyFileIntoDownloadFolder` Return Type**  
+  - Changed return type from `boolean` to `File` object ([#11])  
+  - **Migration Required:** Update code to handle the returned `File` instead of boolean checks
+#### New Features
+- **Subdirectory Support**  
+  - Added `subDirectoryPath` parameter to `copyFileIntoDownloadFolder`  
+  - Enables organized file storage in nested folders within the main download directory
+ 
 ## [1.2.0]  
 - **Breaking Change:**  
   - Removed the dependency on `permission_handler`.  

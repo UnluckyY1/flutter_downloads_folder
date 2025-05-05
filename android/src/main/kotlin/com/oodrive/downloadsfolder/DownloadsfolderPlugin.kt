@@ -46,10 +46,11 @@ class DownloadsfolderPlugin : FlutterPlugin, MethodCallHandler {
                     val filePath = call.argument<String>("filePath")!!
                     val fileName = call.argument<String>("fileName")!!
                     val extension = call.argument<String?>("extension")
+                    val subDirectoryPath= call.argument<String?>("subDirectoryPath")
 
                     try {
-                        saveFileUsingMediaStore(context, filePath, fileName, extension)
-                        result.success(true)
+                     val fileUri = saveFileUsingMediaStore(context, filePath, fileName, extension, subDirectoryPath)
+                     result.success(fileUri)
                     } catch (e: IOException) {
                         e.printStackTrace()
                         result.error("IOException", e.toString(), null)
@@ -76,44 +77,48 @@ class DownloadsfolderPlugin : FlutterPlugin, MethodCallHandler {
     @TargetApi(Build.VERSION_CODES.Q)
     private fun saveFileUsingMediaStore(
         context: Context,
-        filePath: String,      // The path to the original file to be saved.
-        fileName: String,      // The name to be assigned to the saved file in MediaStore.
-        extension: String?    // An optional file extension for the saved file.
-    ) {
-        // Create a ContentValues object to specify the file attributes.
+        filePath: String,
+        fileName: String,
+        extension: String?,
+        subDirectoryPath: String? // Optional subdirectory (e.g., "Reports")
+    ): String? {
         val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)  // Set the display name.
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
             put(
                 MediaStore.MediaColumns.MIME_TYPE,
                 getMimeTypeFromExtension(extension) ?: "application/octet-stream"
-            )  // Set the MIME type.
-            put(
-                MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_DOWNLOADS
-            )  // Set the relative path.
-        }
-
-        // Get the content resolver for the provided context.
-        val resolver = context.contentResolver
-
-        // Specify the MediaStore collection (the "Downloads" directory in this case).
-        val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
-
-        // Insert the file metadata into MediaStore and get the URI of the newly added file.
-        val uri = resolver.insert(collection, contentValues)
-
-        if (uri != null) {
-            // If the insertion was successful, proceed to copy the file to the MediaStore location.
-
-            // Open an input stream for the original file.
-            FileInputStream(filePath).use { input ->
-                // Open an output stream for the MediaStore file.
-                resolver.openOutputStream(uri).use { output ->
-                    // Copy the data from the input stream to the output stream.
-                    input.copyTo(output!!)
-                }
+            )
+            subDirectoryPath?.let { path ->
+                // Format: "Downloads/YourSubdirectory"
+                val sanitizedPath = "${Environment.DIRECTORY_DOWNLOADS}/${path
+                    .trim()
+                    .trimStart('/')
+                    .trimEnd('/')}"
+                put(MediaStore.MediaColumns.RELATIVE_PATH, sanitizedPath)
             }
         }
+    
+        val resolver = context.contentResolver
+        val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+    
+        val uri = resolver.insert(collection, contentValues)
+            ?: throw IOException("Failed to insert file into MediaStore")
+    
+        FileInputStream(filePath).use { input ->
+            resolver.openOutputStream(uri).use { output ->
+                input.copyTo(output!!)
+            }
+        }
+    
+           // Attempt to get the path (works only on Android ≤ 9)
+    var filePath: String? = null
+    resolver.query(uri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            filePath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA))
+        }
+    }
+
+    return filePath
     }
 
     /**

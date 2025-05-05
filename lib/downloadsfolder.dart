@@ -55,11 +55,13 @@ Future<Directory> getDownloadDirectory() =>
 /// If the destination file already exists, a unique name is generated
 /// by appending a suffix in the form of '_(copyNumber)' to the file name.
 /// The copy operation is retried until a unique name is found.
-Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
-        {File? file, String? desiredExtension}) =>
+Future<File?> copyFileIntoDownloadFolder(String filePath, String fileName,
+        {File? file, String? desiredExtension, String? subDirectoryPath}) =>
     DownloadsfolderPlatform.instance.copyFileIntoDownloadFolder(
         filePath, fileName,
-        file: file, desiredExtension: desiredExtension);
+        file: file,
+        desiredExtension: desiredExtension,
+        subDirectoryPath: subDirectoryPath);
 
 /// Opens the download folder on the device's file system.
 ///
@@ -82,3 +84,7 @@ Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
 /// and configuration of the file explorer or file manager on the device.
 Future<bool> openDownloadFolder() =>
     DownloadsfolderPlatform.instance.openDownloadFolder();
+
+// returns -1 if the platform is not Android
+Future<int> getCurrentAndroidSdkVersion() =>
+    DownloadsfolderPlatform.instance.getCurrentAndroidSdkVersion();

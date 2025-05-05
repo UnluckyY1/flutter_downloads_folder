@@ -41,18 +41,14 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     }
   }
 
+  @override
   Future<int> getCurrentAndroidSdkVersion() async {
     try {
-      final int? sdkVersion =
-          await methodChannel.invokeMethod('getCurrentSdkVersion');
-      if (sdkVersion != null) {
-        return sdkVersion;
-      } else {
-        throw PlatformException(
-          code: 'UNKNOWN_SDK_VERSION',
-          message: 'Failed to retrieve SDK version.',
-        );
-      }
+      final sdkVersion = Platform.isAndroid
+          ? (await methodChannel.invokeMethod('getCurrentSdkVersion'))
+          : -1;
+
+      return sdkVersion;
     } on PlatformException catch (_) {
       rethrow;
     }
@@ -73,8 +69,8 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   }
 
   @override
-  Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
-      {File? file, String? desiredExtension}) async {
+  Future<File?> copyFileIntoDownloadFolder(String filePath, String fileName,
+      {File? file, String? desiredExtension, String? subDirectoryPath}) async {
     // Determine the Android SDK version (if it's an Android device).
     final androidSdkVersion =
         Platform.isAndroid ? await getCurrentAndroidSdkVersion() : 0;
@@ -86,19 +82,20 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     if (Platform.isAndroid && androidSdkVersion >= 29) {
       // Use the platform-specific channel to invoke a method and save a file using MediaStore.
       // 'saveFileUsingMediaStore' can only be used with Android API 29 and higher.
-      return _saveFileUsingMediaStore(
+      return File((await _saveFileUsingMediaStore(
           fileToCopy,
           basenameWithoutExtension(fileName),
-          desiredExtension ?? extension(fileToCopy.path));
+          desiredExtension ?? extension(fileToCopy.path),
+          subDirectoryPath: subDirectoryPath))!);
     }
     // Get the path to the download folder.
-    final folder = await getDownloadFolder();
+    final folderPath =
+        absolute((await getDownloadFolder()).path, subDirectoryPath);
 
-    // Copy the file to the download folder with the specified file name and ensures a unique name to avoid overwriting existing files.
-    await fileToCopy.copyTo(folder.path, fileName,
+
+    // Copy the file to the download folder with the specified file name and ensures a unique name to avoid overwriting existing files
+    return fileToCopy.copyTo(folderPath, fileName,
         desiredExtension: desiredExtension ?? extension(fileToCopy.path));
-
-    return true;
   }
 
   @override
@@ -119,14 +116,16 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     return _openDesktopFolder(downloadPath);
   }
 
-  Future<bool?> _saveFileUsingMediaStore(
-          File fileToCopy, String fileName, String desiredExtension) =>
-      methodChannel.invokeMethod<bool>(
+  Future<String?> _saveFileUsingMediaStore(
+          File fileToCopy, String fileName, String desiredExtension,
+          {String? subDirectoryPath}) =>
+      methodChannel.invokeMethod<String>(
         'saveFileUsingMediaStore',
         {
           'filePath': fileToCopy.path,
           'fileName': fileName,
-          'extension': desiredExtension
+          'extension': desiredExtension,
+          'subDirectoryPath': subDirectoryPath
         },
       );
 
