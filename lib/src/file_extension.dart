@@ -39,11 +39,11 @@ extension FileTool on File {
           !protectedFileName.toLowerCase().endsWith('.$desiredExtension')) {
         protectedFileName = '$protectedFileName.$desiredExtension';
       }
-      final destDirectory=Directory(folderPath);
+      final destDirectory = Directory(folderPath);
       String destFilePath = join(folderPath, protectedFileName);
       int copyNumber = 2;
 
-      if(!await destDirectory.exists()) await destDirectory.create();
+      if (!await destDirectory.exists()) await destDirectory.create();
 
       // If a file with the same name already exists, add a suffix and retry.
       while (await File(destFilePath).exists()) {

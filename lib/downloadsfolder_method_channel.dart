@@ -92,7 +92,6 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     final folderPath =
         absolute((await getDownloadFolder()).path, subDirectoryPath);
 
-
     // Copy the file to the download folder with the specified file name and ensures a unique name to avoid overwriting existing files
     return fileToCopy.copyTo(folderPath, fileName,
         desiredExtension: desiredExtension ?? extension(fileToCopy.path));
