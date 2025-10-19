@@ -46,9 +46,10 @@ class DownloadsfolderPlugin : FlutterPlugin, MethodCallHandler {
                     val filePath = call.argument<String>("filePath")!!
                     val fileName = call.argument<String>("fileName")!!
                     val extension = call.argument<String?>("extension")
+                    val subDirectory = call.argument<String?>("subDirectory")
 
                     try {
-                        saveFileUsingMediaStore(context, filePath, fileName, extension)
+                        saveFileUsingMediaStore(context, filePath, fileName, extension, subDirectory)
                         result.success(true)
                     } catch (e: IOException) {
                         e.printStackTrace()
@@ -76,10 +77,18 @@ class DownloadsfolderPlugin : FlutterPlugin, MethodCallHandler {
     @TargetApi(Build.VERSION_CODES.Q)
     private fun saveFileUsingMediaStore(
         context: Context,
-        filePath: String,      // The path to the original file to be saved.
-        fileName: String,      // The name to be assigned to the saved file in MediaStore.
-        extension: String?    // An optional file extension for the saved file.
+        filePath: String,           // The path to the original file to be saved.
+        fileName: String,           // The name to be assigned to the saved file in MediaStore.
+        extension: String?,         // An optional file extension for the saved file.
+        subDirectory: String? = null   // An optional subDirectory for the saved file.
     ) {
+
+        val relativePath = if (!subDirectory.isNullOrEmpty()) {
+            "${Environment.DIRECTORY_DOWNLOADS}/${subDirectory.trim()}"
+        } else {
+            Environment.DIRECTORY_DOWNLOADS
+        }
+
         // Create a ContentValues object to specify the file attributes.
         val contentValues = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)  // Set the display name.
@@ -87,10 +96,7 @@ class DownloadsfolderPlugin : FlutterPlugin, MethodCallHandler {
                 MediaStore.MediaColumns.MIME_TYPE,
                 getMimeTypeFromExtension(extension) ?: "application/octet-stream"
             )  // Set the MIME type.
-            put(
-                MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_DOWNLOADS
-            )  // Set the relative path.
+            put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)  // Set the relative path.
         }
 
         // Get the content resolver for the provided context.

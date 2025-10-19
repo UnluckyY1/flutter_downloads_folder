@@ -74,7 +74,7 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
 
   @override
   Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
-      {File? file, String? desiredExtension}) async {
+      {File? file, String? desiredExtension, String? subDirectory}) async {
     // Determine the Android SDK version (if it's an Android device).
     final androidSdkVersion =
         Platform.isAndroid ? await getCurrentAndroidSdkVersion() : 0;
@@ -89,10 +89,14 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
       return _saveFileUsingMediaStore(
           fileToCopy,
           basenameWithoutExtension(fileName),
-          desiredExtension ?? extension(fileToCopy.path));
+          desiredExtension ?? extension(fileToCopy.path),
+          subDirectory);
     }
     // Get the path to the download folder.
-    final folder = await getDownloadFolder();
+    final downloadFolder = await getDownloadFolder();
+    final folder = subDirectory != null
+        ? Directory('${downloadFolder.path}/${subDirectory.replaceAll(r'^/', '')}')
+        : downloadFolder;
 
     // Copy the file to the download folder with the specified file name and ensures a unique name to avoid overwriting existing files.
     await fileToCopy.copyTo(folder.path, fileName,
@@ -120,13 +124,14 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   }
 
   Future<bool?> _saveFileUsingMediaStore(
-          File fileToCopy, String fileName, String desiredExtension) =>
+          File fileToCopy, String fileName, String desiredExtension, String? subDirectory) =>
       methodChannel.invokeMethod<bool>(
         'saveFileUsingMediaStore',
         {
           'filePath': fileToCopy.path,
           'fileName': fileName,
-          'extension': desiredExtension
+          'extension': desiredExtension,
+          'subDirectory': subDirectory,
         },
       );
 

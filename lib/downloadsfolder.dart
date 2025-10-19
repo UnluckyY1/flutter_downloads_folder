@@ -56,10 +56,10 @@ Future<Directory> getDownloadDirectory() =>
 /// by appending a suffix in the form of '_(copyNumber)' to the file name.
 /// The copy operation is retried until a unique name is found.
 Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
-        {File? file, String? desiredExtension}) =>
+        {File? file, String? desiredExtension, String? subDirectory}) =>
     DownloadsfolderPlatform.instance.copyFileIntoDownloadFolder(
         filePath, fileName,
-        file: file, desiredExtension: desiredExtension);
+        file: file, desiredExtension: desiredExtension, subDirectory: subDirectory);
 
 /// Opens the download folder on the device's file system.
 ///

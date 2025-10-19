@@ -29,7 +29,7 @@ abstract class DownloadsfolderPlatform extends PlatformInterface {
       'getDownloadFolderPath() has not been implemented.');
 
   Future<bool?> copyFileIntoDownloadFolder(String filePath, String fileName,
-          {File? file, String? desiredExtension}) =>
+          {File? file, String? desiredExtension, String? subDirectory}) =>
       throw UnimplementedError(
           'copyFileIntoDownloadFolder() has not been implemented.');
 
