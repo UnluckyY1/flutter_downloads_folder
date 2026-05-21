@@ -1,12 +1,14 @@
 import 'dart:io';
 
-import 'package:downloadsfolder/downloadsfolder.dart';
 import 'package:downloadsfolder/src/constants.dart';
+import 'package:downloadsfolder/src/file_extension.dart';
+import 'package:downloadsfolder/src/saved_download.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'downloadsfolder_platform_interface.dart';
-
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
+import 'downloadsfolder_platform_interface.dart';
 
 /// An implementation of [DownloadsfolderPlatform] that uses method channels.
 class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
@@ -18,17 +20,19 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   @override
   Future<Directory> getDownloadFolder() async {
     final downloadDirectory = await switch (Platform.operatingSystem) {
-      androidPlatform =>
-        getAndroidDirectoryFromFolderType(_androidDownloadsFolderType),
+      androidPlatform => getAndroidDirectoryFromFolderType(
+        _androidDownloadsFolderType,
+      ),
       iosPlatform => getApplicationDocumentsDirectory(),
       macOsPlatform ||
       windowsPlatform ||
-      linuxPlatform =>
-        getDownloadsDirectory(),
-      _ => Future.error(PlatformException(
+      linuxPlatform => getDownloadsDirectory(),
+      _ => Future.error(
+        PlatformException(
           code: 'DOWNLOAD_FOLDER_PATH_ERROR',
           message: 'Platform is not supported.',
-        )),
+        ),
+      ),
     };
 
     if (downloadDirectory != null) {
@@ -45,7 +49,8 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   Future<int> getCurrentAndroidSdkVersion() async {
     try {
       final sdkVersion = Platform.isAndroid
-          ? (await methodChannel.invokeMethod('getCurrentSdkVersion'))
+          ? (await methodChannel.invokeMethod<int>('getCurrentSdkVersion')) ??
+                -1
           : -1;
 
       return sdkVersion;
@@ -55,7 +60,8 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   }
 
   Future<Directory?> getAndroidDirectoryFromFolderType(
-      String folderType) async {
+    String folderType,
+  ) async {
     final String? directoryPath = await methodChannel.invokeMethod<String>(
       'getExternalStoragePublicDirectory',
       {'type': folderType},
@@ -69,40 +75,65 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
   }
 
   @override
-  Future<File?> copyFileIntoDownloadFolder(String filePath, String fileName,
-      {File? file, String? desiredExtension, String? subDirectoryPath}) async {
-    // Determine the Android SDK version (if it's an Android device).
-    final androidSdkVersion =
-        Platform.isAndroid ? await getCurrentAndroidSdkVersion() : 0;
+  Future<SavedDownload?> copyFileIntoDownloadFolder(
+    String filePath,
+    String fileName, {
+    File? file,
+    String? desiredExtension,
+    String? subDirectoryPath,
+    bool openAfterSave = false,
+  }) async {
+    final androidSdkVersion = Platform.isAndroid
+        ? await getCurrentAndroidSdkVersion()
+        : 0;
 
     final fileToCopy = file ?? File(filePath);
 
-    // This is a workaround to avoid using MANAGE_EXTERNAL_STORAGE on Android 29 and higher.
-    // Instead, we use MediaStore within the native code to save the file.
+    // Android 10+ goes through MediaStore so we don't need MANAGE_EXTERNAL_STORAGE.
     if (Platform.isAndroid && androidSdkVersion >= 29) {
-      // Use the platform-specific channel to invoke a method and save a file using MediaStore.
-      // 'saveFileUsingMediaStore' can only be used with Android API 29 and higher.
-      return File((await _saveFileUsingMediaStore(
-          fileToCopy,
-          basenameWithoutExtension(fileName),
-          desiredExtension ?? extension(fileToCopy.path),
-          subDirectoryPath: subDirectoryPath))!);
+      final result = await methodChannel
+          .invokeMapMethod<String, dynamic>('saveFileUsingMediaStore', {
+            'filePath': fileToCopy.path,
+            'fileName': p.basenameWithoutExtension(fileName),
+            'extension': desiredExtension ?? p.extension(fileToCopy.path),
+            'subDirectoryPath': subDirectoryPath,
+            'openAfterSave': openAfterSave,
+          });
+      if (result == null) return null;
+      final path = result['path'] as String?;
+      if (path == null) return null;
+      final uri = result['uri'] as String?;
+      return SavedDownload(
+        file: File(path),
+        contentUri: uri == null ? null : Uri.parse(uri),
+      );
     }
-    // Get the path to the download folder.
-    final folderPath =
-        absolute((await getDownloadFolder()).path, subDirectoryPath);
 
-    // Copy the file to the download folder with the specified file name and ensures a unique name to avoid overwriting existing files
-    return fileToCopy.copyTo(folderPath, fileName,
-        desiredExtension: desiredExtension ?? extension(fileToCopy.path));
+    // Legacy Android / all other platforms: plain file copy.
+    final folderPath = p.absolute(
+      (await getDownloadFolder()).path,
+      subDirectoryPath,
+    );
+
+    final copied = await fileToCopy.copyTo(
+      folderPath,
+      fileName,
+      desiredExtension: desiredExtension ?? p.extension(fileToCopy.path),
+    );
+
+    if (openAfterSave) {
+      await _openLocalFile(copied);
+    }
+    return SavedDownload(file: copied);
   }
 
   @override
   Future<bool> openDownloadFolder() async {
     if (Platform.isAndroid || Platform.isIOS) {
       // Open the download folder directly on Android and iOS using the platform-specific channel.
-      final result =
-          await methodChannel.invokeMethod<bool?>('openDownloadFolder');
+      final result = await methodChannel.invokeMethod<bool?>(
+        'openDownloadFolder',
+      );
       return result ?? false;
     }
 
@@ -115,30 +146,42 @@ class MethodChannelDownloadsfolder extends DownloadsfolderPlatform {
     return _openDesktopFolder(downloadPath);
   }
 
-  Future<String?> _saveFileUsingMediaStore(
-          File fileToCopy, String fileName, String desiredExtension,
-          {String? subDirectoryPath}) =>
-      methodChannel.invokeMethod<String>(
-        'saveFileUsingMediaStore',
-        {
-          'filePath': fileToCopy.path,
-          'fileName': fileName,
-          'extension': desiredExtension,
-          'subDirectoryPath': subDirectoryPath
-        },
-      );
-
   Future<bool> _openDesktopFolder(String folderPath) async {
     final result = await switch (Platform.operatingSystem) {
       windowsPlatform => Process.run(windowsExplorerCommand, [folderPath]),
       macOsPlatform => Process.run(macOSOpenCommand, [folderPath]),
       linuxPlatform => Process.run(linuxOpenCommand, [folderPath]),
       _ => throw PlatformException(
-          code: 'OPEN_FOLDER_ERROR',
-          message: 'Platform is not supported',
-        ),
+        code: 'OPEN_FOLDER_ERROR',
+        message: 'Platform is not supported',
+      ),
     };
 
+    return result.exitCode == 0;
+  }
+
+  /// Opens a local file with the OS default viewer. Used by the legacy
+  /// `openAfterSave: true` branch (Android < 29, iOS, desktop).
+  Future<bool> _openLocalFile(File file) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      // Android < 29 case: file is directly accessible. Use ACTION_VIEW
+      // via the platform-channel `openFile` method.
+      try {
+        final ok = await methodChannel.invokeMethod<bool>('openFile', {
+          'uri': 'file://${file.path}',
+          'mimeType': null,
+        });
+        return ok ?? false;
+      } catch (_) {
+        return false;
+      }
+    }
+    final result = await switch (Platform.operatingSystem) {
+      windowsPlatform => Process.run('cmd', ['/c', 'start', '""', file.path]),
+      macOsPlatform => Process.run(macOSOpenCommand, [file.path]),
+      linuxPlatform => Process.run(linuxOpenCommand, [file.path]),
+      _ => Future<ProcessResult>.value(ProcessResult(0, 1, '', '')),
+    };
     return result.exitCode == 0;
   }
 }

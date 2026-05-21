@@ -45,7 +45,9 @@ extension FileTool on File {
       String destFilePath = join(folderPath, protectedFileName);
       int copyNumber = 2;
 
-      if (!await destDirectory.exists()) await destDirectory.create();
+      if (!await destDirectory.exists()) {
+        await destDirectory.create(recursive: true);
+      }
 
       // If a file with the same name already exists, add a suffix and retry.
       while (await File(destFilePath).exists()) {

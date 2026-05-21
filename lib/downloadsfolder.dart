@@ -1,90 +1,87 @@
 import 'dart:io';
 
 import 'downloadsfolder_platform_interface.dart';
+import 'src/saved_download.dart';
+
 export 'src/file_extension.dart';
+export 'src/saved_download.dart';
 export 'package:path/path.dart';
 
-/// Gets the path to the external storage directory for downloads based on the platform.
+/// Returns the platform-specific downloads directory.
 ///
-/// return A [Future] that completes with a [String] representing the path to the downloads directory.
-///         Returns `null` if the path retrieval fails or is not applicable on the current platform.
+/// - **Android**: the public `Environment.DIRECTORY_DOWNLOADS` directory,
+///   resolved through a platform-channel call to
+///   `Environment.getExternalStoragePublicDirectory`.
+/// - **iOS**: the app's documents directory.
+/// - **macOS**, **Windows**, **Linux**: the OS-provided downloads directory
+///   returned by `path_provider`.
 ///
-/// throws Exception If an error occurs during the path retrieval process.
-///
-///
-/// - On **Android**, this method uses the platform-specific channel to invoke a native method
-///   ('getExternalStoragePublicDirectory')
-///  and retrieves the path to the external storage downloads directory
-///  based on the specified folder type [_androidDownloadsFolderType].
-///
-/// - On **iOS**, the method returns the Directory to the ApplicationDocumentsDirectory.
-///
-/// - On **macOS**, the method returns the Directory to the Downloads directory.
-///
-/// - On **Windows**, the method uses the Windows-specific path provider to retrieve the Directory to the Downloads directory.
+/// Throws a [PlatformException] if the directory cannot be resolved or the
+/// current platform is not supported.
 Future<Directory> getDownloadDirectory() =>
     DownloadsfolderPlatform.instance.getDownloadFolder();
 
-/// Copies the file to the download folder with the specified file name
-/// and ensures a unique name to avoid overwriting existing files.
+/// Copies the file at [filePath] into the platform's downloads folder, using
+/// a unique destination name so existing files are never overwritten.
 ///
-/// - **filePath** The path to the source file that needs to be copied.
+/// Parameters:
+/// - **filePath**: path to the source file.
+/// - **fileName**: desired filename (without folders) for the copy.
+/// - **file**: optional pre-resolved [File] for the source. Defaults to
+///   `File(filePath)`.
+/// - **desiredExtension**: optional extension override (`.pdf`, `pdf`, etc.).
+/// - **subDirectoryPath**: optional sub-folder under Downloads (e.g.
+///   `"Reports"`).
+/// - **openAfterSave**: when true, immediately opens the saved file in the
+///   OS default viewer (via `ACTION_VIEW` on Android, `open`/`xdg-open`/
+///   `cmd /c start` on the desktop platforms). Default `false`.
 ///
-///  - **fileName** The name for the copied file in the download folder.
+/// Returns a [SavedDownload] describing the saved file, or `null` if the
+/// save did not produce a resolvable path. Throws if the underlying I/O or
+/// platform channel call fails.
 ///
-///  - **file** (Optional) The [File] object representing the source file.
-///  If not provided, a [File] object will be created from [filePath].
-///
-///  - **desiredExtension** (Optional) The desired file extension for the copied file.
-///                         If not provided, the extension will be derived from the source file's path.
-///
-/// return A [Future] that completes with a [bool] value indicating whether the file copy operation was successful or not.
-///         Returns `true` if successful, otherwise returns `false`.
-///
-/// throws Exception If an error occurs during the file copy operation.
-///
-/// **remarks:**
-/// This method checks the Android SDK version and utilizes a workaround to avoid using `MANAGE_EXTERNAL_STORAGE`
-/// on Android 29 and higher.
-/// For devices with Android API 29 and higher, the method uses the platform-specific channel
-/// to invoke a native method ('saveFileUsingMediaStore')
-/// and saves the file using `MediaStore` to bypass the restriction.
-///
-/// On devices with Android versions below 29, the method gets the path to the download folder
-/// and copies the file using the `copyTo` method.
-/// If the destination file already exists, a unique name is generated
-/// by appending a suffix in the form of '_(copyNumber)' to the file name.
-/// The copy operation is retried until a unique name is found.
-Future<File?> copyFileIntoDownloadFolder(String filePath, String fileName,
-        {File? file, String? desiredExtension, String? subDirectoryPath}) =>
-    DownloadsfolderPlatform.instance.copyFileIntoDownloadFolder(
-        filePath, fileName,
-        file: file,
-        desiredExtension: desiredExtension,
-        subDirectoryPath: subDirectoryPath);
+/// Platform behaviour:
+/// - **Android 10+** (API 29+): the file is saved via `MediaStore` so the
+///   plugin does **not** require `MANAGE_EXTERNAL_STORAGE`. Because of
+///   scoped storage the calling app generally **cannot perform raw
+///   `dart:io` I/O on the returned `File` path** even though the file
+///   exists. Use `SavedDownload.contentUri` (a `content://` URI) for any
+///   read / share / `Intent.ACTION_VIEW` work from the calling app. The
+///   `File.path` is still useful to display where the file landed.
+/// - **Android < 29**, **iOS**, **macOS**, **Windows**, **Linux**: the file
+///   is a normal copy; `SavedDownload.file` is directly usable with
+///   `dart:io` and `SavedDownload.contentUri` is `null`.
+Future<SavedDownload?> copyFileIntoDownloadFolder(
+  String filePath,
+  String fileName, {
+  File? file,
+  String? desiredExtension,
+  String? subDirectoryPath,
+  bool openAfterSave = false,
+}) => DownloadsfolderPlatform.instance.copyFileIntoDownloadFolder(
+  filePath,
+  fileName,
+  file: file,
+  desiredExtension: desiredExtension,
+  subDirectoryPath: subDirectoryPath,
+  openAfterSave: openAfterSave,
+);
 
-/// Opens the download folder on the device's file system.
+/// Opens the downloads folder in the system file browser.
 ///
-/// return A [Future] that completes with a [bool] value indicating whether
-/// the operation to open the download folder was successful or not.
-///         Returns `true` if successful, otherwise returns `false`.
+/// - On **Android** and **iOS**, this method uses the platform channel to
+///   open the system file manager / Files app at the downloads location.
+/// - On **macOS**, **Windows**, and **Linux**, the plugin shells out to the
+///   appropriate native command (`open`, `explorer.exe`, `xdg-open`).
 ///
-///
-/// - On **Android** and **iOS**, this method uses the platform-specific channel
-///   to invoke a native method ('openDownloadFolder')
-/// to open the download folder directly, providing a seamless user experience.
-//
-//
-/// - On other platforms (e.g., **macOS**, **Windows**), the method retrieves the path to the download folder
-///   using the [getDownloadFolder] method,
-/// and attempts to launch the file explorer
-/// or file manager to open the specified folder using the [launchUrl] function.
-///
-/// Note: The success of opening the download folder may depend on the availability
-/// and configuration of the file explorer or file manager on the device.
+/// Returns `true` if the folder was opened successfully, `false` otherwise.
+/// Success on iOS additionally requires the `UISupportsDocumentBrowser` key
+/// in `Info.plist`.
 Future<bool> openDownloadFolder() =>
     DownloadsfolderPlatform.instance.openDownloadFolder();
 
-// returns -1 if the platform is not Android
+/// Returns the current Android SDK integer (`Build.VERSION.SDK_INT`).
+///
+/// Returns `-1` on every non-Android platform.
 Future<int> getCurrentAndroidSdkVersion() =>
     DownloadsfolderPlatform.instance.getCurrentAndroidSdkVersion();

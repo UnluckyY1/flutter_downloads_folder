@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'downloadsfolder_method_channel.dart';
+import 'src/saved_download.dart';
 
 abstract class DownloadsfolderPlatform extends PlatformInterface {
   /// Constructs a DownloadsfolderPlatform.
@@ -25,17 +26,25 @@ abstract class DownloadsfolderPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<Directory> getDownloadFolder() => throw UnimplementedError(
-      'getDownloadFolderPath() has not been implemented.');
+  Future<Directory> getDownloadFolder() =>
+      throw UnimplementedError('getDownloadFolder() has not been implemented.');
 
-  Future<File?> copyFileIntoDownloadFolder(String filePath, String fileName,
-          {File? file, String? desiredExtension, String? subDirectoryPath}) =>
-      throw UnimplementedError(
-          'copyFileIntoDownloadFolder() has not been implemented.');
+  Future<SavedDownload?> copyFileIntoDownloadFolder(
+    String filePath,
+    String fileName, {
+    File? file,
+    String? desiredExtension,
+    String? subDirectoryPath,
+    bool openAfterSave = false,
+  }) => throw UnimplementedError(
+    'copyFileIntoDownloadFolder() has not been implemented.',
+  );
 
   Future<bool> openDownloadFolder() => throw UnimplementedError(
-      'openDownloadFolder() has not been implemented.');
+    'openDownloadFolder() has not been implemented.',
+  );
 
   Future<int> getCurrentAndroidSdkVersion() => throw UnimplementedError(
-      'getCurrentAndroidSdkVersion() has not been implemented.');
+    'getCurrentAndroidSdkVersion() has not been implemented.',
+  );
 }
