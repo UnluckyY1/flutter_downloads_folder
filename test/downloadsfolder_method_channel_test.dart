@@ -3,6 +3,33 @@ import 'dart:io';
 import 'package:downloadsfolder/downloadsfolder_method_channel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+
+class _FakePathProvider extends PathProviderPlatform
+    with MockPlatformInterfaceMixin {
+  _FakePathProvider(this.downloadsPath);
+
+  final String downloadsPath;
+
+  @override
+  Future<String?> getDownloadsPath() async => downloadsPath;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => downloadsPath;
+
+  @override
+  Future<String?> getTemporaryPath() async => downloadsPath;
+
+  @override
+  Future<String?> getApplicationSupportPath() async => downloadsPath;
+
+  @override
+  Future<String?> getLibraryPath() async => downloadsPath;
+
+  @override
+  Future<String?> getExternalStoragePath() async => downloadsPath;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -70,15 +97,15 @@ void main() {
     // `Platform.isAndroid` synchronously, so we can only exercise it from a
     // device or emulator running the integration test. Here we instead test
     // the non-Android path, which is the same code shipped to iOS / desktop.
-    // `path_provider` is not registered in the unit-test environment, so we
-    // mock its channel to return a temp directory we control.
+    //
+    // We can't mock the path_provider method channel because path_provider_linux
+    // is a pure-Dart implementation (no channel at all). Instead we override
+    // `PathProviderPlatform.instance` so the fake is hit regardless of host OS.
     group('copyFileIntoDownloadFolder (non-Android branch)', () {
-      const pathProviderChannel = MethodChannel(
-        'plugins.flutter.io/path_provider',
-      );
       late Directory tempDir;
       late Directory fakeDownloads;
       late File source;
+      late PathProviderPlatform originalPathProvider;
 
       setUp(() async {
         tempDir = await Directory.systemTemp.createTemp(
@@ -88,21 +115,12 @@ void main() {
         source = File('${tempDir.path}/source.txt');
         await source.writeAsString('hello');
 
-        messenger.setMockMethodCallHandler(pathProviderChannel, (call) async {
-          // path_provider asks for several directory kinds. We only need to
-          // answer the one our plugin calls on each desktop platform.
-          if (call.method == 'getDownloadsDirectory' ||
-              call.method == 'getDownloadsPath' ||
-              call.method == 'getApplicationDocumentsDirectory' ||
-              call.method == 'getApplicationDocumentsPath') {
-            return fakeDownloads.path;
-          }
-          return null;
-        });
+        originalPathProvider = PathProviderPlatform.instance;
+        PathProviderPlatform.instance = _FakePathProvider(fakeDownloads.path);
       });
 
       tearDown(() async {
-        messenger.setMockMethodCallHandler(pathProviderChannel, null);
+        PathProviderPlatform.instance = originalPathProvider;
         if (tempDir.existsSync()) {
           await tempDir.delete(recursive: true);
         }
