@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:dartx/dartx.dart';
-
 import 'package:diacritic/diacritic.dart';
 import 'package:path/path.dart';
 
@@ -25,12 +23,16 @@ extension FileTool on File {
   /// This method ensures a unique file name in the destination folder to avoid overwriting existing files.
   /// If a file with the same name already exists, a suffix in
   /// the form of '_(copyNumber)' is added to the file name, and the copy operation is retried.
-  Future<File> copyTo(String folderPath, String fileName,
-      {String? desiredExtension}) async {
-    if (folderPath.isNotNullOrEmpty) {
+  Future<File> copyTo(
+    String folderPath,
+    String fileName, {
+    String? desiredExtension,
+  }) async {
+    if (folderPath.isNotEmpty) {
       // Ensure a valid and unique file name in the destination folder.
-      String protectedFileName = removeDiacritics(fileName)
-          .replaceAll(RegExp('[^A-Za-z0-9\\.\\(\\)\\- ]'), '_');
+      String protectedFileName = removeDiacritics(
+        fileName,
+      ).replaceAll(RegExp('[^A-Za-z0-9\\.\\(\\)\\- ]'), '_');
       if (protectedFileName.isEmpty) {
         protectedFileName = DateTime.now().microsecondsSinceEpoch.toString();
       }
@@ -39,17 +41,23 @@ extension FileTool on File {
           !protectedFileName.toLowerCase().endsWith('.$desiredExtension')) {
         protectedFileName = '$protectedFileName.$desiredExtension';
       }
-
+      final destDirectory = Directory(folderPath);
       String destFilePath = join(folderPath, protectedFileName);
       int copyNumber = 2;
+
+      if (!await destDirectory.exists()) {
+        await destDirectory.create(recursive: true);
+      }
 
       // If a file with the same name already exists, add a suffix and retry.
       while (await File(destFilePath).exists()) {
         final fileBaseName = basenameWithoutExtension(protectedFileName);
         final fileExtension = extension(protectedFileName);
 
-        destFilePath =
-            join(folderPath, '$fileBaseName($copyNumber)$fileExtension');
+        destFilePath = join(
+          folderPath,
+          '$fileBaseName($copyNumber)$fileExtension',
+        );
         copyNumber++;
       }
 

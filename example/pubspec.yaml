@@ -63,6 +63,16 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # Disable Swift Package Manager for this example app only.
+  # Background: the example consumes the plugin via `path: ../`, and Flutter's
+  # SPM tooling derives the SPM symlink name from the plugin's parent directory
+  # basename (`flutter_downloads_folder`), which does not match the pubspec
+  # `name:` (`downloadsfolder`). This identity mismatch causes Xcode to fail
+  # SPM dependency resolution. End-user consumers via pub.dev are unaffected
+  # because the pub-cache directory matches the pubspec name. See:
+  # flutter/packages/flutter_tools/lib/src/macos/swift_package_manager.dart:156
+  config:
+    enable-swift-package-manager: false
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

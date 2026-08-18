@@ -1,11 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:downloadsfolder/downloadsfolder.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'dart:async';
-
 import 'package:flutter/services.dart';
-import 'package:downloadsfolder/downloadsfolder.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 void main() {
@@ -16,11 +15,7 @@ class MyExample extends StatelessWidget {
   const MyExample({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: MyApp(),
-    );
-  }
+  Widget build(BuildContext context) => const MaterialApp(home: MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -34,48 +29,76 @@ class _MyAppState extends State<MyApp> {
   String? _downloadsfolderPath;
   File? _pickedFile;
 
+  /// User-controlled save options.
+  final TextEditingController _subDirController = TextEditingController();
+  bool _openAfterSave = false;
+
+  @override
+  void dispose() {
+    _subDirController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Plugin example app'),
-      ),
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed: _getDownloadPath,
-            child: const Center(
-              child: Text('Get Download Path'),
-            ),
-          ),
-          if (_downloadsfolderPath != null)
-            Center(
-              child: Text('Downloads Folder Path: $_downloadsfolderPath\n'),
-            ),
-          ElevatedButton(
-            onPressed: _pickAFile,
-            child: const Center(
-              child: Text('Pick a File'),
-            ),
-          ),
-          if (_pickedFile != null)
-            Center(
-              child: Text('Picked File Path: ${_pickedFile!.path}\n'),
-            ),
-          if (_pickedFile != null)
+      appBar: AppBar(title: const Text('Plugin example app')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             ElevatedButton(
-              onPressed: _saveFile,
-              child: const Center(
-                child: Text('Save Picked File into Downloads Folder'),
+              onPressed: _getDownloadPath,
+              child: const Text('Get Download Path'),
+            ),
+            if (_downloadsfolderPath != null) ...[
+              const SizedBox(height: 8),
+              Text('Downloads Folder Path: $_downloadsfolderPath'),
+            ],
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _pickAFile,
+              child: const Text('Pick a File'),
+            ),
+            if (_pickedFile != null) ...[
+              const SizedBox(height: 8),
+              Text('Picked File Path: ${_pickedFile!.path}'),
+            ],
+            const SizedBox(height: 16),
+            const Text(
+              'Save options',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextField(
+              controller: _subDirController,
+              decoration: const InputDecoration(
+                labelText: 'Subdirectory (optional)',
+                hintText: 'e.g. "Reports" — leave empty for root of Downloads',
               ),
             ),
-          ElevatedButton(
-            onPressed: _openDownloadFolder,
-            child: const Center(
-              child: Text('Show Download Folder'),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Open file after save'),
+              subtitle: const Text(
+                'Launches the OS default viewer once the copy completes',
+              ),
+              value: _openAfterSave,
+              onChanged: (v) => setState(() => _openAfterSave = v),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            if (_pickedFile != null)
+              ElevatedButton(
+                onPressed: _saveFile,
+                child: const Text('Save Picked File into Downloads Folder'),
+              ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _openDownloadFolder,
+              child: const Text('Show Download Folder'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -115,9 +138,7 @@ class _MyAppState extends State<MyApp> {
       });
     } else {
       ScaffoldMessenger.of(this.context).showSnackBar(
-        const SnackBar(
-          content: Text('No File Has been selected'),
-        ),
+        const SnackBar(content: Text('No File Has been selected')),
       );
     }
   }
@@ -125,7 +146,9 @@ class _MyAppState extends State<MyApp> {
   Future<void> _saveFile() async {
     bool storagePermissionGranted = true;
 
-    if (Platform.isAndroid || Platform.isIOS) {
+    final androidSdk = await getCurrentAndroidSdkVersion();
+
+    if (Platform.isAndroid && androidSdk < 33 || Platform.isIOS) {
       storagePermissionGranted = await Permission.storage.isGranted;
 
       if (!storagePermissionGranted) {
@@ -145,21 +168,28 @@ class _MyAppState extends State<MyApp> {
       return;
     }
 
-    // Attempt to copy the file
-    bool? success = await copyFileIntoDownloadFolder(
+    final trimmedSubDir = _subDirController.text.trim();
+    final subDir = trimmedSubDir.isEmpty ? null : trimmedSubDir;
+
+    final saved = await copyFileIntoDownloadFolder(
       _pickedFile!.path,
       basenameWithoutExtension(_pickedFile!.path),
       desiredExtension: extension(_pickedFile!.path),
+      subDirectoryPath: subDir,
+      openAfterSave: _openAfterSave,
     );
 
     if (!mounted) return;
 
+    final snackBody = saved == null
+        ? 'Failed to copy file.'
+        : 'File saved to: "${saved.file.path}"'
+            '${saved.contentUri != null ? '\nMediaStore URI: ${saved.contentUri}' : ''}';
+
     ScaffoldMessenger.of(this.context).showSnackBar(
       SnackBar(
-        content: Text(success == true
-            ? 'File copied successfully.'
-            : 'Failed to copy file.'),
-        action: success == true
+        content: Text(snackBody),
+        action: saved != null
             ? SnackBarAction(
                 label: 'Show Download Folder',
                 onPressed: _openDownloadFolder,

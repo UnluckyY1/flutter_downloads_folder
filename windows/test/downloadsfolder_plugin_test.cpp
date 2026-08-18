@@ -22,21 +22,27 @@ using flutter::MethodResultFunctions;
 
 }  // namespace
 
-TEST(DownloadsfolderPlugin, GetPlatformVersion) {
+// The Windows side of this plugin currently has no native method handlers —
+// the Dart side handles the desktop platforms directly via Process.run. The
+// plugin still has to be registrable and respond to unknown methods with
+// NotImplemented so the channel doesn't hang.
+TEST(DownloadsfolderPlugin, UnknownMethodReturnsNotImplemented) {
   DownloadsfolderPlugin plugin;
-  // Save the reply value from the success callback.
-  std::string result_string;
-  plugin.HandleMethodCall(
-      MethodCall("getPlatformVersion", std::make_unique<EncodableValue>()),
-      std::make_unique<MethodResultFunctions<>>(
-          [&result_string](const EncodableValue* result) {
-            result_string = std::get<std::string>(*result);
-          },
-          nullptr, nullptr));
+  bool not_implemented_called = false;
+  bool success_called = false;
+  bool error_called = false;
 
-  // Since the exact string varies by host, just ensure that it's a string
-  // with the expected format.
-  EXPECT_TRUE(result_string.rfind("Windows ", 0) == 0);
+  plugin.HandleMethodCall(
+      MethodCall("someUnknownMethod", std::make_unique<EncodableValue>()),
+      std::make_unique<MethodResultFunctions<>>(
+          [&success_called](const EncodableValue*) { success_called = true; },
+          [&error_called](const std::string&, const std::string&,
+                          const EncodableValue*) { error_called = true; },
+          [&not_implemented_called]() { not_implemented_called = true; }));
+
+  EXPECT_TRUE(not_implemented_called);
+  EXPECT_FALSE(success_called);
+  EXPECT_FALSE(error_called);
 }
 
 }  // namespace test

@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main, '2.0.0-pre']
+  pull_request:
+    branches: [main, '2.0.0-pre']
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same ref when a newer commit arrives.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.0'
+
+jobs:
+  analyze-and-test:
+    name: Analyze + Dart tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Get plugin dependencies
+        run: flutter pub get
+
+      - name: Verify plugin formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze plugin
+        run: flutter analyze
+
+      - name: Run plugin unit tests
+        run: flutter test test/
+
+      - name: Get example dependencies
+        run: flutter pub get
+        working-directory: example
+
+      - name: Verify example formatting
+        run: dart format --output=none --set-exit-if-changed .
+        working-directory: example
+
+      - name: Analyze example
+        run: flutter analyze
+        working-directory: example
+
+      - name: Run example widget tests
+        run: flutter test
+        working-directory: example
+
+  android-build:
+    name: Android build + Gradle unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Get example dependencies
+        run: flutter pub get
+        working-directory: example
+
+      - name: Build example APK (debug)
+        run: flutter build apk --debug
+        working-directory: example
+
+      - name: Run Kotlin unit tests
+        run: ./gradlew :downloadsfolder:testDebugUnitTest
+        working-directory: example/android
+
+  ios-build:
+    name: iOS build (simulator)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Get example dependencies
+        run: flutter pub get
+        working-directory: example
+
+      - name: Build iOS simulator app
+        run: flutter build ios --debug --no-codesign --simulator
+        working-directory: example
+
+  macos-build:
+    name: macOS build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Get example dependencies
+        run: flutter pub get
+        working-directory: example
+
+      - name: Build macOS app
+        run: flutter build macos --debug
+        working-directory: example
